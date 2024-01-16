@@ -209,9 +209,6 @@ rm -rf racecar-neo-{valid_curr[curr]}-labs
 cd ..
 git clone https://github.com/MITRacecarNeo/RacecarSim-{valid_op_sys[op_sys].lower()}.git
 mv RacecarSim-{valid_op_sys[op_sys].lower()} RacecarSim
-cd ..
-sudo mv racecar-neo-installer racecar-neo
-cd racecar-neo
 
     """
 
