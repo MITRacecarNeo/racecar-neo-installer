@@ -198,7 +198,8 @@ dos2unix {linux_path}/scripts/racecar_tool.sh
 
     script_file = f"""#!/bin/sh
 
-cd racecar-neo-installer/racecar-student
+cd racecar-neo-installer
+cd racecar-student
 git clone https://github.com/MITRacecarNeo/racecar-neo-library.git
 mv racecar-neo-library library
 git clone {curr_links[curr]}
@@ -220,33 +221,27 @@ cd racecar-neo
     print()
 
     if confirm2.lower() == "y":
-        subprocess.run(["sh", 'libinstall.sh'])
+        subprocess.run(["sh", 'racecar-neo-installer/racecar-student/scripts/libinstall.sh'])
     else:
-        print("\nAuto script running denied. To run the setup script, cd into the scripts folder using:")
-        print(f"cd {linux_path}/scripts")
-        print("Then run [sh libinstall.sh] in the terminal.\n")
+        print("\nAutomatic script running denied. To run the setup script in the future, please run this script again later.")
 
     print()
     confirm3 = input("[1/3] Run RACECAR Setup Script? (Y/N): ")
     print()
 
     if confirm3.lower() == "y":
-        subprocess.run(["sh", 'setup.sh'])
+        subprocess.run(["sh", 'racecar-neo-installer/racecar-student/scripts/setup.sh'])
     else:
-        print("\nAuto script running denied. To run the setup script, cd into the scripts folder using:")
-        print(f"cd {linux_path}/scripts")
-        print("Then run [sh setup.sh] in the terminal.\n")
+        print("\nAutomatic script running denied. To run the setup script in the future, please run this script again later.")
 
     print()
     confirm4 = input("[2/3] Run RACECAR Curriculum Installation Script? (Y/N): ")
     print()
 
     if confirm4.lower() == "y":
-        subprocess.run(["sh", 'currinstall.sh'])
+        subprocess.run(["sh", 'racecar-neo-installer/racecar-student/scripts/currinstall.sh'])
     else:
-        print("\nAuto script running denied. To run the setup script, cd into the scripts folder using:")
-        print(f"cd {linux_path}/scripts")
-        print("Then run [sh currinstall.sh] in the terminal. Goodbye.\n")
+        print("\nAutomatic script running denied. To run the setup script in the future, please run this script again later.")
 
     print()
     print("[3/3] All setup menus passed. Thank you for using the RACECAR Neo installer. Goodbye.")
