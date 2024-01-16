@@ -201,14 +201,16 @@ dos2unix {linux_path}/scripts/racecar_tool.sh
 cd racecar-neo-installer
 cd racecar-student
 git clone https://github.com/MITRacecarNeo/racecar-neo-library.git
-mv racecar-neo-library library
+mv racecar-neo-library/library library
+rm -rf racecar-neo-library
 git clone {curr_links[curr]}
-mv racecar-neo-{valid_curr[curr]}-labs labs
+mv racecar-neo-{valid_curr[curr]}-labs/labs labs
+rm -rf racecar-neo-{valid_curr[curr]}-labs
 cd ..
 git clone https://github.com/MITRacecarNeo/RacecarSim-{valid_op_sys[op_sys].lower()}.git
 mv RacecarSim-{valid_op_sys[op_sys].lower()} RacecarSim
 cd ..
-mv racecar-neo-installer racecar-neo
+sudo mv racecar-neo-installer racecar-neo
 cd racecar-neo
 
     """
