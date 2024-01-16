@@ -33,16 +33,14 @@ lib_command = ""
 
 while True:
     try:
-        # [USER INPUT LOGIC]
+        # User input validation for operating system
         op_sys = int(input("Enter operating system ID (0: Windows, 1: Mac, 2: Linux): "))
+        if op_sys < 0 or op_sys > 2:
+            print("Input out of bounds. Try again.")
+        else:
+            break
     except ValueError:
         print("Input invalid. Try again.")
-
-    # User input validation for operating system
-    if op_sys < 0 or op_sys > 2:
-        print("Input out of bounds. Try again.")
-    else:
-        break
 
 
 ip_addr = input("Enter IP Address (leave blank if using sim): ")
@@ -60,13 +58,12 @@ print()
 while True:
     try:
         curr = int(input("Enter Course ID (0-1): "))
+        if curr < 0 or curr > 1:
+            print("Input out of bounds. Try again.")
+        else:
+            break
     except ValueError:
         print("Input invalid. Try again.")
-        continue  
-    if curr < 0 or curr > 1:
-        print("Input out of bounds. Try again.")
-    else:
-        break
 
 # [GENERATE ABSOLUTE PATH]
 abs_path = os.path.dirname(os.path.abspath(__file__))
@@ -76,8 +73,9 @@ linux_path = os.path.dirname(abs_path)
 print("\nIs this information correct?\n=============================")
 print(f"Operating System: {valid_op_sys[op_sys]}")
 print(f"IP Address: {ip_addr}")
-print(f"Curriculum: racecar-neo-{valid_curr[curr]}")
+print(f"Curriculum: racecar-neo-{valid_curr[curr]}\n")
 confirm = input("Confirm (Y/N): ")
+print()
 
 # [CONFIRMATION VALID]
 if confirm.lower() == "y":
@@ -174,10 +172,7 @@ fi # RACECAR_ALIASES" >> ~/.zshrc
 
 $SHELL
 """
-
-    print(f"Library Command: \n{lib_command}\n")
-    print(f"\nConfig Command: \n{config_command}\n")
-    print(f"Tool Command: \n{tool_command}\n")
+   
     print("\nCreating Setup Script File...")
 
     script_file = f"""#!/bin/sh
@@ -185,7 +180,7 @@ $SHELL
 {lib_command}
 """
 
-    with open('libinstall.sh', 'w') as w:
+    with open('racecar-neo-installer/racecar-student/scripts/libinstall.sh', 'w') as w:
         w.write(script_file)
 
     script_file = f"""#!/bin/sh
@@ -198,12 +193,12 @@ dos2unix {linux_path}/scripts/racecar_tool.sh
 
 """
 
-    with open('setup.sh', "w") as w:
+    with open('racecar-neo-installer/racecar-student/scripts/setup.sh', "w") as w:
         w.write(script_file)
 
     script_file = f"""#!/bin/sh
 
-cd racecar-student
+cd racecar-neo-installer/racecar-student
 git clone https://github.com/MITRacecarNeo/racecar-neo-library.git
 mv racecar-neo-library library
 git clone {curr_links[curr]}
@@ -217,7 +212,7 @@ cd racecar-neo
 
     """
 
-    with open('currinstall.sh', "w") as w:
+    with open('racecar-neo-installer/racecar-student/scripts/currinstall.sh', "w") as w:
         w.write(script_file)
 
     print()
