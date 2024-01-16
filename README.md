@@ -26,4 +26,4 @@ Since the installation process slightly varies between operating systems and typ
 
 ## Legacy Information
 
-RACECAR Neo is based on RACECAR-MN (Model Neo), the course version supported between the years of 2019-2022. RACECAR-MN development is no longer ongoing and is considered to be deprecated. More on RACECAR-MN and the outdated installation process can be found here: [RACECAR-MN INstallation](https://mitll-racecar-mn.readthedocs.io/en/latest/gettingStarted/computerSetup.html#)
+RACECAR Neo is based on RACECAR-MN (Model Neo), the course version supported between the years of 2019-2022. RACECAR-MN development is no longer ongoing and is considered to be deprecated. More on RACECAR-MN and the outdated installation process can be found here: [RACECAR-MN Installation](https://mitll-racecar-mn.readthedocs.io/en/latest/gettingStarted/computerSetup.html#)
