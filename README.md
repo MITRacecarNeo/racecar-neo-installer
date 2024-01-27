@@ -1,4 +1,6 @@
- # racecar-neo-installer
+# racecar-neo-installer
+
+Instructions for RACECAR Neo installation found [here](https://docs.google.com/document/d/1WnaPee1AA4GwqgW9r1K-RrU2VonvI3ZcDkW5oSuaSaY/edit#heading=h.uxbegx6o23ro)
 
 Template repository for native RACECAR installation (Entry Point)
 
