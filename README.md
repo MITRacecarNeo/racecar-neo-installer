@@ -14,14 +14,14 @@ Python 3.9.7 installation
 
 1. `cd` into the folder that you want to install your project files in
 2. run the command `git clone https://github.com/MITRacecarNeo/racecar-neo-installer.git`
-3. run the command `sudo python3 racecar-neo-installer/racecar-student/scripts/setup.py`
-4. Follow the prompts to enter your operating system, RACECAR IP Address, and curriculum type as needed
-5. Type "Y" to accept the automatic installation prompts. There should be 3 prompts. The first one (`libinstall.sh`) may take a while depending on your internet speed. (~15 minutes)
+3. run the command `bash racecar-neo-installer/racecar-student/scripts/setup.sh`
+4. Follow the prompts to enter your operating system and curriculum type per your course
+5. Wait ~15 minutes as the libraries and dependencies install.
 6. Done!
 
 ## What does the racecar-neo-installer do?
 
-racecar-neo-installer is a flexible and efficient way of installing the RACECAR Neo software onto your computer. The repository only contains a `scripts` folder inside a template `racecar-student` folder. Upon cloning the folder into your computer and running the `setup.py` script, the compiler will ask you to input your computer's **operating system, RACECAR IP address, and curriculum type**.
+racecar-neo-installer is a flexible and efficient way of installing the RACECAR Neo software onto your computer. The repository only contains a `scripts` folder inside a template `racecar-student` folder. Upon cloning the folder into your computer and running the `setup.sh` script, the compiler will ask you to input your computer's **operating system and curriculum type**.
 
 Then, it will run through a series of **python library dependency installations**, **bash alias scripts**, and **git clone commands** to set up the Racecar Neo installation to your unique specifications.
 
