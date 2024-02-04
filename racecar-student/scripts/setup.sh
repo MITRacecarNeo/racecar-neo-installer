@@ -110,6 +110,8 @@ elif [ "$PLATFORM" == 'linux' ]; then
     yes | apt install ffmpeg libsm6 libxext6 -y
     busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
 
+    echo "[DEBUG] Running config and tool commands..."
+
     # Linux config command
     echo "RACECAR_ABSOLUTE_PATH=${RACECAR_DIR}
 RACECAR_IP=127.0.0.1
@@ -126,6 +128,8 @@ fi # RACECAR_ALIASES
 if [ -f \"${SCRIPT_DIR}/racecar_tool.sh\" ]; then # RACECAR_ALIASES
     . \"${SCRIPT_DIR}/racecar_tool.sh\" # RACECAR_ALIASES
 fi # RACECAR_ALIASES" >> ~/.bashrc
+
+    echo "[DEBUG] Finished running config and tool commands..."
 
 elif [ "$PLATFORM" == 'mac' ]; then
     xcode-select --install
@@ -146,6 +150,8 @@ elif [ "$PLATFORM" == 'mac' ]; then
 
     yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
     busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
+
+    echo "[DEBUG] Running config and tool commands..."
 
     # Mac config command
     echo "RACECAR_ABSOLUTE_PATH=${RACECAR_DIR}
@@ -174,6 +180,8 @@ if [ -f \"${SCRIPT_DIR}/racecar_tool.sh\" ]; then # RACECAR_ALIASES
 fi # RACECAR_ALIASES" >> ~/.zshrc
 
     $SHELL
+
+    echo "[DEBUG] Finished running config and tool commands..."
 fi
 
 echo 'Racecar Neo Setup Complete.'
