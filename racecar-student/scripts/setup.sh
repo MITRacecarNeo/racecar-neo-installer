@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # static variables
-SIM_URL="https://github.com/MITRacecarNeo/RacecarNeo-Simulator/tree/"
+SIM_URL="https://github.com/MITRacecarNeo/RacecarNeo-Simulator.git"
 LIB_URL="https://github.com/MITRacecarNeo/racecar-neo-library.git"
 CURR_URL="https://github.com/MITRacecarNeo/racecar-neo-"
 
@@ -26,7 +26,7 @@ do
             cd "$SCRIPT_DIR"/..
             cd ..
             # Clone file from github, format dirs
-            git clone "${SIM_URL}${PLATFORM}"
+            git clone -b "${PLATFORM} ${SIM_URL}"
             mv "$SIMNAME" RacecarSim
 
             # Allow permissions
