@@ -79,6 +79,8 @@ if [ "$PLATFORM" == 'windows' ]; then
     yes | apt install ffmpeg libsm6 libxext6 -y
     busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
 
+    echo "[DEBUG] Running config and tool commands..."
+
     # Windows config command
     echo "RACECAR_ABSOLUTE_PATH=${RACECAR_DIR}
 RACECAR_IP=127.0.0.1
@@ -95,6 +97,8 @@ fi # RACECAR_ALIASES
 if [ -f \"${SCRIPT_DIR}/racecar_tool.sh\" ]; then # RACECAR_ALIASES
     . \"${SCRIPT_DIR}/racecar_tool.sh\" # RACECAR_ALIASES
 fi # RACECAR_ALIASES" >> ~/.bashrc
+
+    echo "[DEBUG] Finished running config and tool commands..."
 
 elif [ "$PLATFORM" == 'linux' ]; then
     yes | sudo apt update
@@ -171,3 +175,5 @@ fi # RACECAR_ALIASES" >> ~/.zshrc
 
     $SHELL
 fi
+
+echo 'Racecar Neo Setup Complete.'
