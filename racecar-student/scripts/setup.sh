@@ -26,7 +26,7 @@ do
             cd "$SCRIPT_DIR"/..
             cd ..
             # Clone file from github, format dirs
-            git clone -b "${PLATFORM}" "${SIM_URL}"
+            git clone -b "${PLATFORM}" --single-branch "${SIM_URL}"
             mv "$SIMNAME" RacecarSim
 
             # Allow permissions
