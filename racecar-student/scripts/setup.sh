@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 # static variables
-RELEASE_DATE=2024-01-27
-SIM_URL="https://github.com/MITRacecarNeo/RacecarSim-binary/archive/refs/tags"
+SIM_URL="https://github.com/MITRacecarNeo/RacecarNeo-Simulator/tree/"
 LIB_URL="https://github.com/MITRacecarNeo/racecar-neo-library.git"
 CURR_URL="https://github.com/MITRacecarNeo/racecar-neo-"
 
@@ -24,13 +23,10 @@ select PLATFORM in windows mac linux
 do
     case $PLATFORM in
         windows|mac|linux)
-            TARGET="${SIM_URL}/${PLATFORM}_${RELEASE_DATE}.zip"
-            # Go two folders back from scripts directory
             cd "$SCRIPT_DIR"/..
             cd ..
-            # Pull file from github, unzip and place in dir, format dirs
-            wget -qO- $TARGET | busybox unzip -
-            SIMNAME="RacecarSim-binary-${PLATFORM}_${RELEASE_DATE}"
+            # Clone file from github, format dirs
+            git clone "${SIM_URL}${PLATFORM}"
             mv "$SIMNAME" RacecarSim
 
             # Allow permissions
