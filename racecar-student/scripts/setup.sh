@@ -71,11 +71,11 @@ echo '[3/3] Installing all RACECAR libraries and dependencies...'
 if [ "$PLATFORM" == 'windows' ]; then
     yes | sudo apt update
     yes | sudo apt upgrade
-    yes | apt install python-is-python3
-    yes | apt install python3-pip
+    yes | sudo apt install python-is-python3
+    yes | sudo install python3-pip
     yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
-    yes | apt install jupyter-notebook
-    yes | apt install ffmpeg libsm6 libxext6 -y
+    yes | sudo apt install jupyter-notebook
+    yes | sudo apt install ffmpeg libsm6 libxext6 -y
     busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
 
     echo "[DEBUG] Running config and tool commands..."
