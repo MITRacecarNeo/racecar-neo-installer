@@ -27,11 +27,10 @@ do
             cd ..
             # Clone file from github, format dirs
             git clone -b "${PLATFORM}" --single-branch "${SIM_URL}"
-            mv "$SIMNAME" RacecarSim
 
             # Allow permissions
             if [ "$PLATFORM" == 'mac' ]; then
-                chmod -R 777 RacecarSim
+                chmod -R 777 RacecarNeo-Simulator
             fi
 
             break
