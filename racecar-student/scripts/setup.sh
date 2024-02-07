@@ -72,7 +72,7 @@ if [ "$PLATFORM" == 'windows' ]; then
     yes | sudo apt update
     yes | sudo apt upgrade
     yes | sudo apt install python-is-python3
-    yes | sudo install python3-pip
+    yes | sudo apt install python3-pip
     yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
     yes | sudo apt install jupyter-notebook
     yes | sudo apt install ffmpeg libsm6 libxext6 -y
