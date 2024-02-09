@@ -147,7 +147,7 @@ elif [ "$PLATFORM" == 'mac' ]; then
 
     python3 -m pip install --upgrade pip
 
-    yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
+    yes | pip3 install -r "${SCRIPT_DIR}"/requirements.txt
     busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
 
     echo "[DEBUG] Running config and tool commands..."
