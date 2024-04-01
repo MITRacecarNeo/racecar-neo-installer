@@ -6,7 +6,7 @@ racecar() {
     echo "Error: unable to find your local .config file.  Please make sure that you setup the racecar tool correctly."
     echo "Go to \"https://mitll-racecar-mn.readthedocs.io/en/latest/gettingStarted/computerSetup.html\" for setup instructions."
   else
-    local RACECAR_DESTINATION_PATH="/home/racecar/Documents/${RACECAR_TEAM}"
+    local RACECAR_DESTINATION_PATH="/home/racecar/jupyter_ws/${RACECAR_TEAM}"
     if [ $# -eq 1 ] && [ "$1" = "cd" ]; then
       cd "$RACECAR_ABSOLUTE_PATH"/labs || return
     elif [ $# -eq 1 ] && [ "$1" = "connect" ]; then
@@ -18,7 +18,7 @@ racecar() {
       jupyter-notebook --no-browser
     elif [ $# -eq 1 ] && [ "$1" = "remove" ]; then
       echo "Removing your team directory from your RACECAR..."
-      ssh racecar@"$RACECAR_IP" "cd /home/racecar/Documents/ && rm -rf ${RACECAR_TEAM}"
+      ssh racecar@"$RACECAR_IP" "cd /home/racecar/jupyter_ws/ && rm -rf ${RACECAR_TEAM}"
     elif [ $# -eq 1 ] && [ "$1" = "setup" ]; then
       echo "Creating your team directory (${RACECAR_DESTINATION_PATH}) on your RACECAR..."
       ssh racecar@"$RACECAR_IP" mkdir -p "$RACECAR_DESTINATION_PATH"
@@ -46,7 +46,7 @@ racecar() {
       echo "Backup number: $numfiles"
       echo "Backup location: $RACECAR_ABSOLUTE_PATH"/backup/version_"$numfiles"
       echo "Downloading files now..."
-      scp -rp racecar@$RACECAR_IP:/home/racecar/Documents $RACECAR_ABSOLUTE_PATH/backup/version_$numfiles
+      scp -rp racecar@$RACECAR_IP:/home/racecar/jupyter_ws $RACECAR_ABSOLUTE_PATH/backup/version_$numfiles
     elif [ $# -eq 2 ] && [ "$1" = "sync" ]; then
       local valid_command=false
       if [ "$2" = "library" ] || [ "$2" = "all" ]; then
