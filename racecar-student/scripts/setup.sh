@@ -148,7 +148,9 @@ elif [ "$PLATFORM" == 'mac' ]; then
     python3 -m pip install --upgrade pip
 
     yes | pip3 install -r "${SCRIPT_DIR}"/requirements.txt
-    busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
+
+    /bin/bash brew install dos2unix
+    dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
 
     echo "[DEBUG] Running config and tool commands..."
 
@@ -160,7 +162,7 @@ RACECAR_CONFIG_LOADED=TRUE
 sudo sysctl -w net.inet.udp.maxdgram=65535" > "${SCRIPT_DIR}/.config"
 
     # Mac tool command
-    sed '/# RACECAR_ALIASES$/d' -i ~/.bashrc
+    sed -i '' '/# RACECAR_ALIASES$/d' ~/.bashrc
     echo "# Source RACECAR tool # RACECAR_ALIASES
 if [ -f \"${SCRIPT_DIR}/.config\" ]; then # RACECAR_ALIASES
     . \"${SCRIPT_DIR}/.config\" # RACECAR_ALIASES
@@ -169,7 +171,7 @@ if [ -f \"${SCRIPT_DIR}/racecar_tool.sh\" ]; then # RACECAR_ALIASES
     . \"${SCRIPT_DIR}/racecar_tool.sh\" # RACECAR_ALIASES
 fi # RACECAR_ALIASES" >> ~/.bashrc
 
-    sed '/# RACECAR_ALIASES$/d' -i ~/.zshrc
+    sed -i '' '/# RACECAR_ALIASES$/d' ~/.zshrc
     echo "# Source RACECAR tool # RACECAR_ALIASES
 if [ -f \"${SCRIPT_DIR}/.config\" ]; then # RACECAR_ALIASES
     . \"${SCRIPT_DIR}/.config\" # RACECAR_ALIASES
