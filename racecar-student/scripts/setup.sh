@@ -47,7 +47,6 @@ select CURRICULUM in oneshot outreach prereq
 do
     case $CURRICULUM in
         oneshot|outreach|prereq)
-            TARGET="${BASE_URL}/${PLATFORM}_${RELEASE_DATE}.zip"
             # Go one folder back from scripts directory
             cd "$SCRIPT_DIR"/..
             # Set up library and labs folder w/ correct formatting

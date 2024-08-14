@@ -12,7 +12,7 @@ SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 # Extract the racecar-student directory
 RACECAR_DIR=$(dirname "$SCRIPT_DIR")
 
-echo 'Welcome to the RACECAR Neo command-line simualtor updater for Windows, Mac, and Linux.'
+echo 'Welcome to the RACECAR Neo command-line simulator updater for Windows, Mac, and Linux.'
 
 echo '[1/1] Select your operating system: [windows, mac, linux]'
 select PLATFORM in windows mac linux
