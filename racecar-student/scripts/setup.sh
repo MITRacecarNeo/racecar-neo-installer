@@ -85,7 +85,7 @@ if [ "$PLATFORM" == 'windows' ]; then
     cd "$SCRIPT_DIR"/../..
     python3.9 -m venv racecar-venv
     source racecar-venv/bin/activate
-    echo "$source {NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
+    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
 
     # continue with regular setup
     yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
@@ -179,8 +179,8 @@ elif [ "$PLATFORM" == 'mac' ]; then
     cd "$SCRIPT_DIR"/../..
     python3.9 -m venv racecar-venv
     source racecar-venv/bin/activate
-    echo "$source {NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
-    echo "$source {NEO_DIR}/racecar-venv/bin/activate" >> ~/.zshrc
+    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
+    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.zshrc
 
     yes | pip3 install -r "${SCRIPT_DIR}"/requirements.txt
 
