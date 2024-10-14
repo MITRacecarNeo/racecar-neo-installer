@@ -14,6 +14,9 @@ SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 # Extract the racecar-student directory
 RACECAR_DIR=$(dirname "$SCRIPT_DIR")
 
+# Extract the racecar-neo-installer directory
+NEO_DIR=$(dirname "$RACECAR_DIR")
+
 echo 'Welcome to the RACECAR Neo command-line installer for Windows, Mac, and Linux.'
 
 
@@ -72,6 +75,19 @@ if [ "$PLATFORM" == 'windows' ]; then
     yes | sudo apt upgrade
     yes | sudo apt install python-is-python3
     yes | sudo apt install python3-pip
+
+    # Setting up venv for Python 3.9
+    yes | sudo add-apt-repository ppa:deadsnakes/ppa
+    yes | sudo apt update
+    yes | sudo apt install python3.9
+    yes | sudo apt install python3.9-venv
+
+    cd "$SCRIPT_DIR"/../..
+    python3.9 -m venv racecar-venv
+    source racecar-venv/bin/activate
+    echo "${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
+
+    # continue with regular setup
     yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
     yes | sudo apt install jupyter-notebook
     yes | sudo apt install ffmpeg libsm6 libxext6 -y
@@ -103,6 +119,18 @@ elif [ "$PLATFORM" == 'linux' ]; then
     yes | sudo apt upgrade
     yes | sudo apt install python-is-python3
     yes | sudo apt install python3-pip
+
+    # Setting up venv for Python 3.9
+    yes | sudo add-apt-repository ppa:deadsnakes/ppa
+    yes | sudo apt update
+    yes | sudo apt install python3.9
+    yes | sudo apt install python3.9-venv
+
+    cd "$SCRIPT_DIR"/../..
+    python3.9 -m venv racecar-venv
+    source racecar-venv/bin/activate
+    echo "${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
+
     yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
     yes | sudo apt install jupyter-notebook
     yes | sudo apt install ffmpeg libsm6 libxext6 -y
@@ -145,6 +173,14 @@ elif [ "$PLATFORM" == 'mac' ]; then
     echo 'export PATH="/usr/local/opt/python/libexec/bin:$PATH"'  
 
     python3 -m pip install --upgrade pip
+
+    # Set up venv on mac
+    brew install python@3.9
+    cd "$SCRIPT_DIR"/../..
+    python3.9 -m venv racecar-venv
+    source racecar-venv/bin/activate
+    echo "${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
+    echo "${NEO_DIR}/racecar-venv/bin/activate" >> ~/.zshrc
 
     yes | pip3 install -r "${SCRIPT_DIR}"/requirements.txt
 
