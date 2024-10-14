@@ -1,5 +1,5 @@
 numpy == 1.21.2
-matplotlib
+matplotlib == 3.8.4
 pandas == 2.0.3
 mypy
 nptyping == 1.4.4
