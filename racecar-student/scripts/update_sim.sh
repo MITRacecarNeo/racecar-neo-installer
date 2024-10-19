@@ -4,7 +4,7 @@
 SIM_URL="https://github.com/MITRacecarNeo/RacecarNeo-Simulator.git"
 
 # Get the full path of the current script
-SCRIPT_PATH=$(realpath "$0")
+SCRIPT_PATH=$(readlink -f "$0" 2>/dev/null || echo "$(cd "$(dirname "$0")"; pwd)/$(basename "$0")")
 
 # Extract the directory from the full path
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")

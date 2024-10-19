@@ -6,7 +6,6 @@ LIB_URL="https://github.com/MITRacecarNeo/racecar-neo-library.git"
 CURR_URL="https://github.com/MITRacecarNeo/racecar-neo-"
 
 # Get the full path of the current script
-# SCRIPT_PATH=$(realpath "$0")
 SCRIPT_PATH=$(readlink -f "$0" 2>/dev/null || echo "$(cd "$(dirname "$0")"; pwd)/$(basename "$0")")
 
 # Extract the directory from the full path
