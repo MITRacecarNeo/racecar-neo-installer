@@ -1,9 +1,9 @@
-numpy == 1.21.2
+numpy == 1.26.2
 matplotlib == 3.8.4
 pandas == 2.0.3
 mypy
 nptyping == 1.4.4
-opencv-contrib-python == 4.5.4.58
+opencv-python == 4.8.1.78
 jinja2 == 3.0
 ipywidgets == 7.6.5
 scipy == 1.10
