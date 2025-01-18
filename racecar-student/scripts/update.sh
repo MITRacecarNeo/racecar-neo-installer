@@ -55,7 +55,7 @@ if [ "$FOLDER" == 'labs' ]; then
                 ;;
         esac
     done
-elif [ "$PLATFORM" == 'library' ]; then
+elif [ "$FOLDER" == 'library' ]; then
     echo '[2/3] Now updating the library folder...'
     #Remove the existing library directory
     # Go one folder back from scripts directory
@@ -66,7 +66,7 @@ elif [ "$PLATFORM" == 'library' ]; then
     git clone "${LIB_URL}"
     mv racecar-neo-library/library library
     rm -rf racecar-neo-library
-elif [ "$PLATFORM" == 'sim' ]; then
+elif [ "$FOLDER" == 'sim' ]; then
     echo '[2/3] Now updating the simulation folder...'
     echo 'Select your operating system: [windows, mac, linux]'
     select PLATFORM in windows mac linux
