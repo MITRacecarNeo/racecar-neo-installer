@@ -21,13 +21,16 @@ SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 RACECAR_DIR=$(dirname "$SCRIPT_DIR")
 
 echo '[1/3] Select the folder that you would lke to update: [labs, library, sim]'
-select FOLDER in labs, library, sim
+select FOLDER in labs library sim
 do
     case $FOLDER in
         labs|library|sim)
-            echo "Folder selected. Continuing..."
+            echo "Folder '$FOLDER' selected. Continuing..."
+            break  # Exit the loop after a valid selection
             ;;
-        *) ;;
+        *)
+            echo "Invalid option. Please try again."
+            ;;
     esac
 done
 
