@@ -44,12 +44,12 @@ do
 done
 
 
-echo '[2/3] Select your course curriculum: [oneshot, outreach, prereq]'
-select CURRICULUM in oneshot outreach prereq
+echo '[2/3] Select your course curriculum: [oneshot, mites, outreach, prereq]'
+select CURRICULUM in oneshot mites outreach prereq
 
 do
     case $CURRICULUM in
-        oneshot|outreach|prereq)
+        oneshot|mites|outreach|prereq)
             # Go one folder back from scripts directory
             cd "$SCRIPT_DIR"/..
             # Set up library and labs folder w/ correct formatting
@@ -84,7 +84,8 @@ if [ "$PLATFORM" == 'windows' ]; then
 
     cd "$SCRIPT_DIR"/../..
     python3.9 -m venv racecar-venv
-    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
+    # sed to prevent idempotency
+    sed -i "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
 
     # continue with regular setup
     yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
@@ -127,7 +128,8 @@ elif [ "$PLATFORM" == 'linux' ]; then
 
     cd "$SCRIPT_DIR"/../..
     python3.9 -m venv racecar-venv
-    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
+    # sed to prevent idempotency
+    sed -i "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
 
     yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
     yes | sudo apt install jupyter-notebook
@@ -176,8 +178,12 @@ elif [ "$PLATFORM" == 'mac' ]; then
     brew install python@3.9
     cd "$SCRIPT_DIR"/../..
     python3.9 -m venv racecar-venv
-    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
-    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.zshrc
+    # sed to prevent idempotency
+    sed -i '' "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a\
+    source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
+    # sed to prevent idempotency
+    sed -i '' "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a\
+    source ${NEO_DIR}/racecar-venv/bin/activate" ~/.zshrc
 
     yes | pip3 install -r "${SCRIPT_DIR}"/requirements.txt
 
