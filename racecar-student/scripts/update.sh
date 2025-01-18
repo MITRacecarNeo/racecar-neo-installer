@@ -36,7 +36,7 @@ done
 
 if [ "$FOLDER" == 'labs' ]; then
     echo '[1/3] Now updating the labs folder...'
-    echo '[WARNING] Save or rename your previous lab folder before continuing! This command will erase your existing work! Ctrl+C to exit if needed.'
+    echo '[WARNING] Rename delete your previous lab folder before continuing! This command will erase your existing work! Ctrl+C to exit if needed.'
     echo 'Select your course curriculum: [oneshot, outreach, prereq]'
     select CURRICULUM in oneshot outreach prereq
     do
