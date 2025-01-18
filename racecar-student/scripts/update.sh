@@ -24,69 +24,72 @@ echo '[1/3] Select the folder that you would lke to update: [labs, library, sim]
 select FOLDER in labs, library, sim
 do
     case $FOLDER in
-        labs)
-            echo '[1/3] Now updating the labs folder...'
-            echo 'Select your course curriculum: [oneshot, outreach, prereq]'
-            select CURRICULUM in oneshot outreach prereq
-            do
-                case $CURRICULUM in
-                    oneshot|outreach|prereq)
-                        # Go one folder back from scripts directory
-                        cd "$SCRIPT_DIR"/..
-                        # Set up labs folder w/ correct formatting
-                        git clone "${CURR_URL}${CURRICULUM}-labs"
-                        mv "racecar-neo-${CURRICULUM}-labs"/labs labs
-                        rm -rf "racecar-neo-${CURRICULUM}-labs"
-                        cd "$SCRIPT_DIR"
-                        break
-                        ;;
-                    *)
-                        ;;
-                esac
-            done
-        ;;
-        library)
-            echo '[2/3] Now updating the library folder...'
-            #Remove the existing library directory
-            # Go one folder back from scripts directory
-            cd "$SCRIPT_DIR"/..
-            #remove the library folder
-            rm -rf library
-            # Set up library and labs folder w/ correct formatting
-            git clone "${LIB_URL}"
-            mv racecar-neo-library/library library
-            rm -rf racecar-neo-library
-        ;;
-        sim)
-            echo '[2/3] Now updating the simulation folder...'
-            echo 'Select your operating system: [windows, mac, linux]'
-            select PLATFORM in windows mac linux
-            do
-                case $PLATFORM in
-                    windows|mac|linux)
-                        cd "$SCRIPT_DIR"/..
-                        cd ..
-
-                        # Remove current sim files
-                        rm -rf RacecarNeo-Simulator
-
-                        # Clone file from github, format dirs
-                        git clone -b "${PLATFORM}" --single-branch "${SIM_URL}"
-
-                        # Allow permissions
-                        if [ "$PLATFORM" == 'mac' ]; then
-                            chmod -R 777 RacecarNeo-Simulator
-                        fi
-
-                        break
-                        ;;
-                    *)
-                        ;;
-                esac
-            done
-        ;;
+        labs|library|sim)
+            echo "Folder selected. Continuing..."
+            ;;
         *) ;;
     esac
 done
+
+if [ "$FOLDER" == 'labs' ]; then
+    echo '[1/3] Now updating the labs folder...'
+    echo '[WARNING] Save or rename your previous lab folder before continuing! This command will erase your existing work! Ctrl+C to exit if needed.'
+    echo 'Select your course curriculum: [oneshot, outreach, prereq]'
+    select CURRICULUM in oneshot outreach prereq
+    do
+        case $CURRICULUM in
+            oneshot|outreach|prereq)
+                # Go one folder back from scripts directory
+                cd "$SCRIPT_DIR"/..
+                # Set up labs folder w/ correct formatting
+                git clone "${CURR_URL}${CURRICULUM}-labs"
+                mv "racecar-neo-${CURRICULUM}-labs"/labs labs
+                rm -rf "racecar-neo-${CURRICULUM}-labs"
+                cd "$SCRIPT_DIR"
+                break
+                ;;
+            *)
+                ;;
+        esac
+    done
+elif [ "$PLATFORM" == 'library' ]; then
+    echo '[2/3] Now updating the library folder...'
+    #Remove the existing library directory
+    # Go one folder back from scripts directory
+    cd "$SCRIPT_DIR"/..
+    #remove the library folder
+    rm -rf library
+    # Set up library and labs folder w/ correct formatting
+    git clone "${LIB_URL}"
+    mv racecar-neo-library/library library
+    rm -rf racecar-neo-library
+elif [ "$PLATFORM" == 'sim' ]; then
+    echo '[2/3] Now updating the simulation folder...'
+    echo 'Select your operating system: [windows, mac, linux]'
+    select PLATFORM in windows mac linux
+    do
+        case $PLATFORM in
+            windows|mac|linux)
+                cd "$SCRIPT_DIR"/..
+                cd ..
+
+                # Remove current sim files
+                rm -rf RacecarNeo-Simulator
+
+                # Clone file from github, format dirs
+                git clone -b "${PLATFORM}" --single-branch "${SIM_URL}"
+
+                # Allow permissions
+                if [ "$PLATFORM" == 'mac' ]; then
+                    chmod -R 777 RacecarNeo-Simulator
+                fi
+
+                break
+                ;;
+            *)
+                ;;
+        esac
+    done
+fi
 
 echo '[3/3] Update complete.'
