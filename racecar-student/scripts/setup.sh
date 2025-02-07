@@ -44,12 +44,12 @@ do
 done
 
 
-echo '[2/3] Select your course curriculum: [oneshot, mites, outreach, prereq]'
-select CURRICULUM in oneshot mites outreach prereq
+echo '[2/3] Select your course curriculum: [oneshot, outreach, prereq, mites]'
+select CURRICULUM in oneshot outreach prereq mites
 
 do
     case $CURRICULUM in
-        oneshot|mites|outreach|prereq)
+        oneshot|outreach|prereq|mites)
             # Go one folder back from scripts directory
             cd "$SCRIPT_DIR"/..
             # Set up library and labs folder w/ correct formatting
@@ -88,7 +88,7 @@ if [ "$PLATFORM" == 'windows' ]; then
     sed -i "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
 
     # continue with regular setup
-    yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
+    # yes | pip install -r "${SCRIPT_DIR}"/requirements.txt # old pip install command - not needed anymore (speed up install)
     yes | sudo apt install jupyter-notebook
     yes | sudo apt install ffmpeg libsm6 libxext6 -y
     busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
@@ -131,7 +131,7 @@ elif [ "$PLATFORM" == 'linux' ]; then
     # sed to prevent idempotency
     sed -i "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
 
-    yes | pip install -r "${SCRIPT_DIR}"/requirements.txt
+    # yes | pip install -r "${SCRIPT_DIR}"/requirements.txt # old pip install command not needed anymore
     yes | sudo apt install jupyter-notebook
     yes | sudo apt install ffmpeg libsm6 libxext6 -y
     busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
@@ -185,10 +185,7 @@ elif [ "$PLATFORM" == 'mac' ]; then
     sed -i '' "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a\
     source ${NEO_DIR}/racecar-venv/bin/activate" ~/.zshrc
 
-    yes | pip3 install -r "${SCRIPT_DIR}"/requirements.txt
-
-    /bin/bash brew install dos2unix
-    dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
+    # yes | pip3 install -r "${SCRIPT_DIR}"/requirements.txt #  old pip install command not needed anymore
 
     echo "[DEBUG] Running config and tool commands..."
 
