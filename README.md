@@ -15,9 +15,11 @@ Python 3.9.7 installation
 1. `cd` into the folder that you want to install your project files in
 2. run the command `git clone https://github.com/MITRacecarNeo/racecar-neo-installer.git`
 3. run the command `bash racecar-neo-installer/racecar-student/scripts/setup.sh`
-4. Follow the prompts to enter your operating system and curriculum type per your course
-5. Wait ~15 minutes as the libraries and dependencies install.
-6. Done!
+    - Follow the prompts to enter your operating system and curriculum type per your course
+    - Wait ~15 minutes as the libraries and dependencies install.
+    - Close and re-open your terminal window after the installation is complete
+4. run the command `pip3 install -r racecar-neo-installer/racecar-student/scripts/requirements.txt` to install dependencies.
+5. run `racecar test` and `racecar sim demo.py` to verify installation is successful
 
 ## What does the racecar-neo-installer do?
 
