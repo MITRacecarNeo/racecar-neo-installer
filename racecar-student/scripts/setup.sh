@@ -178,12 +178,9 @@ elif [ "$PLATFORM" == 'mac' ]; then
     brew install python@3.9
     cd "$SCRIPT_DIR"/../..
     python3.9 -m venv racecar-venv
-    # sed to prevent idempotency
-    sed -i '' "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a\
-    source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
-    # sed to prevent idempotency
-    sed -i '' "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a\
-    source ${NEO_DIR}/racecar-venv/bin/activate" ~/.zshrc
+    # TODO: replace with correct sed -i command when known
+    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc
+    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.zshrc
 
     # yes | pip3 install -r "${SCRIPT_DIR}"/requirements.txt #  old pip install command not needed anymore
 
