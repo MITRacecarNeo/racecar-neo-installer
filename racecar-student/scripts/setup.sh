@@ -85,7 +85,8 @@ if [ "$PLATFORM" == 'windows' ]; then
     cd "$SCRIPT_DIR"/../..
     python3.9 -m venv racecar-venv
     # sed to prevent idempotency
-    sed -i "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
+    # sed -i "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
+    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc # temp command
 
     # continue with regular setup
     # yes | pip install -r "${SCRIPT_DIR}"/requirements.txt # old pip install command - not needed anymore (speed up install)
@@ -129,7 +130,8 @@ elif [ "$PLATFORM" == 'linux' ]; then
     cd "$SCRIPT_DIR"/../..
     python3.9 -m venv racecar-venv
     # sed to prevent idempotency
-    sed -i "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
+    # sed -i "/^source ${NEO_DIR}\/racecar-venv\/bin\/activate$/!a source ${NEO_DIR}/racecar-venv/bin/activate" ~/.bashrc
+    echo "source ${NEO_DIR}/racecar-venv/bin/activate" >> ~/.bashrc # temp command
 
     # yes | pip install -r "${SCRIPT_DIR}"/requirements.txt # old pip install command not needed anymore
     yes | sudo apt install jupyter-notebook
