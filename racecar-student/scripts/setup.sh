@@ -544,6 +544,23 @@ BASHEOF
 fi
 
 # ============================================================================
+# Wire library/ onto the venv's sys.path via a .pth file.
+# Lets students write `import racecar_core` / `import racecar_utils` with no
+# sys.path boilerplate at the top of every lab. Python auto-loads .pth files
+# from site-packages at interpreter startup.
+# ============================================================================
+if [ -f "${NEO_DIR}/racecar-venv/bin/activate" ] && [ -d "${RACECAR_DIR}/library" ]; then
+    source "${NEO_DIR}/racecar-venv/bin/activate"
+    SITE_PACKAGES=$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])' 2>/dev/null)
+    if [ -n "$SITE_PACKAGES" ] && [ -d "$SITE_PACKAGES" ]; then
+        echo "${RACECAR_DIR}/library" > "${SITE_PACKAGES}/racecar_student.pth"
+        log_silent "Wrote ${SITE_PACKAGES}/racecar_student.pth → ${RACECAR_DIR}/library"
+    else
+        log_silent "WARNING: could not resolve venv site-packages; skipping .pth wiring"
+    fi
+fi
+
+# ============================================================================
 # Post-setup verification
 # ============================================================================
 log ""
@@ -646,7 +663,19 @@ else
     check_pass "No command failures detected in log file"
 fi
 
-# 10. Python dependencies
+# 10. Library importable from venv (sys.path wiring)
+if [ -f "${NEO_DIR}/racecar-venv/bin/activate" ]; then
+    source "${NEO_DIR}/racecar-venv/bin/activate"
+    if python3 -c "import racecar_core, racecar_utils" >/dev/null 2>&1; then
+        check_pass "Library wired into venv (racecar_core, racecar_utils importable)"
+    else
+        check_fail "Library not importable from venv — .pth wiring may have failed"
+    fi
+else
+    check_fail "Cannot verify library wiring — virtual environment not found"
+fi
+
+# 11. Python dependencies
 if [ -f "${NEO_DIR}/racecar-venv/bin/activate" ]; then
     source "${NEO_DIR}/racecar-venv/bin/activate"
     DEP_FAIL=0
@@ -673,7 +702,7 @@ else
     check_fail "Cannot verify dependencies — virtual environment not found"
 fi
 
-# 11. WSL networking mode (Windows only)
+# 12. WSL networking mode (Windows only)
 if [ "$PLATFORM" == 'windows' ]; then
     WSL_VERSION="unknown"
     WSL_NET_MODE="unknown"
