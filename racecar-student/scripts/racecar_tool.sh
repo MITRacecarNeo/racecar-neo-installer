@@ -95,6 +95,107 @@ racecar() {
       python3 "$script" -s "$@"
       ;;
 
+    open_sim)
+      # Locate the simulator folder. RACECAR_ABSOLUTE_PATH is the racecar-student
+      # dir; the simulator lives one level up alongside it (and on Windows, that
+      # path is a symlink into /mnt/c/Users/<user>/RacecarNeo-Simulator).
+      local sim_root="$(dirname "$RACECAR_ABSOLUTE_PATH")/RacecarNeo-Simulator"
+      if [ ! -d "$sim_root" ]; then
+        echo "Error: simulator folder not found at ${sim_root}."
+        echo "Run setup.sh or 'bash \$(dirname \"\$RACECAR_ABSOLUTE_PATH\")/racecar-student/scripts/update.sh' to install it."
+        return 1
+      fi
+
+      # The simulator builds are packaged as RacecarSim_<Platform>_v<version>/.
+      # Pick the first match so version bumps don't break this command.
+      local sim_build
+      sim_build=$(find -L "$sim_root" -maxdepth 1 -mindepth 1 -type d -name 'RacecarSim_*' | head -n1)
+      if [ -z "$sim_build" ]; then
+        echo "Error: no RacecarSim_* build folder found inside ${sim_root}."
+        return 1
+      fi
+
+      # Detect host OS and launch the right binary.
+      if grep -qi "microsoft" /proc/version 2>/dev/null; then
+        # WSL — invoke the .exe through cmd.exe so Windows owns the process and
+        # resolves DLLs from a real NTFS path (not a \\wsl.localhost UNC path).
+        local exe_path="${sim_build}/RacecarSim.exe"
+        if [ ! -f "$exe_path" ]; then
+          echo "Error: RacecarSim.exe not found at ${exe_path}."
+          return 1
+        fi
+        local win_path
+        win_path=$(wslpath -w "$exe_path" 2>/dev/null)
+        if [ -z "$win_path" ]; then
+          echo "Error: could not translate ${exe_path} to a Windows path via wslpath."
+          return 1
+        fi
+        echo "Launching simulator: ${win_path}"
+        ( cd "$sim_build" && cmd.exe /c start "" "$win_path" ) >/dev/null 2>&1 &
+        disown 2>/dev/null
+      elif [ "$(uname)" = "Darwin" ]; then
+        local app_path
+        app_path=$(find -L "$sim_build" -maxdepth 1 -mindepth 1 -name 'RacecarSim*.app' | head -n1)
+        if [ -z "$app_path" ]; then
+          echo "Error: RacecarSim*.app bundle not found in ${sim_build}."
+          return 1
+        fi
+        echo "Launching simulator: ${app_path}"
+        open "$app_path"
+      elif [ "$(uname)" = "Linux" ]; then
+        local lin_exe
+        lin_exe=$(find -L "$sim_build" -maxdepth 1 -mindepth 1 -type f \( -name 'RacecarSim.x86_64' -o -name 'RacecarSim' \) | head -n1)
+        if [ -z "$lin_exe" ]; then
+          echo "Error: RacecarSim Linux binary not found in ${sim_build}."
+          return 1
+        fi
+        chmod +x "$lin_exe" 2>/dev/null
+        echo "Launching simulator: ${lin_exe}"
+        ( cd "$sim_build" && "$lin_exe" ) >/dev/null 2>&1 &
+        disown 2>/dev/null
+      else
+        echo "Error: unrecognized OS. 'racecar open_sim' supports Windows (WSL), Mac, and Linux."
+        return 1
+      fi
+      ;;
+
+    open_sim_folder)
+      local sim_root="$(dirname "$RACECAR_ABSOLUTE_PATH")/RacecarNeo-Simulator"
+      if [ ! -d "$sim_root" ]; then
+        echo "Error: simulator folder not found at ${sim_root}."
+        return 1
+      fi
+
+      if grep -qi "microsoft" /proc/version 2>/dev/null; then
+        # Resolve the symlink so Explorer opens the real /mnt/c path, not \\wsl.localhost.
+        local real_root
+        real_root=$(readlink -f "$sim_root")
+        local win_path
+        win_path=$(wslpath -w "$real_root" 2>/dev/null)
+        if [ -z "$win_path" ]; then
+          echo "Error: could not translate ${real_root} to a Windows path."
+          return 1
+        fi
+        echo "Opening folder: ${win_path}"
+        explorer.exe "$win_path" >/dev/null 2>&1 &
+        disown 2>/dev/null
+      elif [ "$(uname)" = "Darwin" ]; then
+        echo "Opening folder: ${sim_root}"
+        open "$sim_root"
+      elif [ "$(uname)" = "Linux" ]; then
+        if ! command -v xdg-open >/dev/null 2>&1; then
+          echo "Error: xdg-open not found. Install xdg-utils or open manually: ${sim_root}"
+          return 1
+        fi
+        echo "Opening folder: ${sim_root}"
+        xdg-open "$sim_root" >/dev/null 2>&1 &
+        disown 2>/dev/null
+      else
+        echo "Error: unrecognized OS. 'racecar open_sim_folder' supports Windows (WSL), Mac, and Linux."
+        return 1
+      fi
+      ;;
+
     backup)
       local prev_dir="$PWD"
       cd "$RACECAR_ABSOLUTE_PATH" || return
@@ -159,6 +260,8 @@ racecar() {
       echo "  racecar remove              removes your team directory from your car."
       echo "  racecar setup               sets up your team directory on your car."
       echo "  racecar sim <file.py>       runs the specified racecar program with the simulator."
+      echo "  racecar open_sim            launches the RacecarNeo simulator GUI."
+      echo "  racecar open_sim_folder     opens the simulator folder in your file manager."
       echo "  racecar sync [labs|library|all]  copies local files to your car with rsync."
       echo "  racecar backup              downloads RACECAR code to a local backup folder."
       echo "  racecar test                prints config to check if the racecar tool is working."

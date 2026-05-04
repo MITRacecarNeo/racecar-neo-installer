@@ -141,19 +141,57 @@ elif [ "$FOLDER" == 'sim' ]; then
                 cd "$SCRIPT_DIR"/..
                 cd ..
 
-                # Remove current sim files
-                rm -rf RacecarNeo-Simulator
+                if [ "$PLATFORM" == 'windows' ]; then
+                    # See setup.sh: simulator lives on the Windows drive to
+                    # avoid the UNC-path DLL loader restriction;
+                    # NEO_DIR/RacecarNeo-Simulator is a symlink pointing to it.
+                    WIN_PROFILE=$(cd /tmp && cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r' | tail -n1)
+                    if [ -z "$WIN_PROFILE" ]; then
+                        log ""
+                        echo -e "\e[1;31m[ERROR] Could not detect Windows user profile via cmd.exe.\e[0m"
+                        log "WSL must be able to invoke cmd.exe to update the simulator on the Windows drive."
+                        log_silent "========== UPDATE LOG END (ABORTED) =========="
+                        exit 1
+                    fi
+                    WIN_PROFILE_WSL=$(wslpath -u "$WIN_PROFILE" 2>/dev/null)
+                    if [ -z "$WIN_PROFILE_WSL" ] || [ ! -d "$WIN_PROFILE_WSL" ]; then
+                        log ""
+                        echo -e "\e[1;31m[ERROR] Windows profile path not accessible from WSL: ${WIN_PROFILE}\e[0m"
+                        log_silent "========== UPDATE LOG END (ABORTED) =========="
+                        exit 1
+                    fi
+                    SIM_DIR="${WIN_PROFILE_WSL}/RacecarNeo-Simulator"
+                    log_silent "Updating simulator on Windows drive: ${SIM_DIR}"
+                    rm -rf "${SIM_DIR}"
+                    # NEO_DIR/RacecarNeo-Simulator may be a symlink (from a prior
+                    # windows setup) or a real directory (from an older setup
+                    # that cloned in-place). Handle both.
+                    if [ -L "${NEO_DIR}/RacecarNeo-Simulator" ] || [ -e "${NEO_DIR}/RacecarNeo-Simulator" ]; then
+                        rm -rf "${NEO_DIR}/RacecarNeo-Simulator"
+                    fi
+                    log "Cloning simulator for ${PLATFORM}..."
+                    # --depth 1 implies --single-branch; -b PLATFORM still
+                    # selects which branch. Drop .git/ after clone — students
+                    # don't need it.
+                    run_cmd git clone --depth 1 -b "${PLATFORM}" "${SIM_URL}" "${SIM_DIR}"
+                    rm -rf "${SIM_DIR}/.git"
+                    ln -sfn "${SIM_DIR}" "${NEO_DIR}/RacecarNeo-Simulator"
+                else
+                    # Remove current sim files
+                    rm -rf RacecarNeo-Simulator
 
-                # Clone file from github, format dirs.
-                # --depth 1 implies --single-branch; -b PLATFORM still selects
-                # which branch. Drop .git/ after clone — students don't need it.
-                log "Cloning simulator for ${PLATFORM}..."
-                run_cmd git clone --depth 1 -b "${PLATFORM}" "${SIM_URL}"
-                rm -rf RacecarNeo-Simulator/.git
+                    # Clone file from github, format dirs.
+                    # --depth 1 implies --single-branch; -b PLATFORM still
+                    # selects which branch. Drop .git/ after clone — students
+                    # don't need it.
+                    log "Cloning simulator for ${PLATFORM}..."
+                    run_cmd git clone --depth 1 -b "${PLATFORM}" "${SIM_URL}"
+                    rm -rf RacecarNeo-Simulator/.git
 
-                # Allow permissions
-                if [ "$PLATFORM" == 'mac' ]; then
-                    chmod -R 777 RacecarNeo-Simulator
+                    # Allow permissions
+                    if [ "$PLATFORM" == 'mac' ]; then
+                        chmod -R 777 RacecarNeo-Simulator
+                    fi
                 fi
 
                 break

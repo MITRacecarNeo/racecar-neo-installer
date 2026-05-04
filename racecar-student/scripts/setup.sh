@@ -130,13 +130,44 @@ do
     esac
 done
 
-# Resolve clone destinations up front so all three clones can run in parallel.
-SIM_DEST="${NEO_DIR}/RacecarNeo-Simulator"
+# Resolve simulator destination.
+# Windows: must clone to C: drive — UNC paths (\\wsl.localhost\...) block
+# RacecarSim.exe DLL loads (dstorage.dll and other Unity-bundled native DLLs).
+# cmd.exe runs from /tmp to dodge the UNC-cwd warning; %USERPROFILE% (not
+# %USERNAME%) is the on-disk folder name, so renamed accounts, Microsoft
+# accounts, and profile folders containing spaces all work.
+if [ "$PLATFORM" == 'windows' ]; then
+    WIN_PROFILE=$(cd /tmp && cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r' | tail -n1)
+    if [ -z "$WIN_PROFILE" ]; then
+        log ""
+        echo -e "\e[1;31m[ERROR] Could not detect Windows user profile via cmd.exe.\e[0m"
+        log "WSL must be able to invoke cmd.exe to install the simulator on the Windows drive."
+        log_silent "========== SETUP LOG END (ABORTED) =========="
+        exit 1
+    fi
+    WIN_PROFILE_WSL=$(wslpath -u "$WIN_PROFILE" 2>/dev/null)
+    if [ -z "$WIN_PROFILE_WSL" ] || [ ! -d "$WIN_PROFILE_WSL" ]; then
+        log ""
+        echo -e "\e[1;31m[ERROR] Windows profile path not accessible from WSL: ${WIN_PROFILE}\e[0m"
+        log_silent "========== SETUP LOG END (ABORTED) =========="
+        exit 1
+    fi
+    SIM_DEST="${WIN_PROFILE_WSL}/RacecarNeo-Simulator"
+else
+    SIM_DEST="${NEO_DIR}/RacecarNeo-Simulator"
+fi
+
 LIB_TMP="${RACECAR_DIR}/racecar-neo-library"
 LABS_TMP="${RACECAR_DIR}/racecar-neo-${CURRICULUM}-labs"
 
-# Wipe any partial prior install before cloning
+# Wipe any partial prior install before cloning. On Windows, also clear the
+# WSL-side symlink (or leftover real directory from an older in-place clone).
 rm -rf "${SIM_DEST}" "${LIB_TMP}" "${LABS_TMP}"
+if [ "$PLATFORM" == 'windows' ]; then
+    if [ -L "${NEO_DIR}/RacecarNeo-Simulator" ] || [ -e "${NEO_DIR}/RacecarNeo-Simulator" ]; then
+        rm -rf "${NEO_DIR}/RacecarNeo-Simulator"
+    fi
+fi
 
 log "[3/4] Cloning simulator, library, and labs in parallel..."
 log_silent "Clone targets: sim → ${SIM_DEST}, lib → ${LIB_TMP}, labs → ${LABS_TMP}"
@@ -225,7 +256,12 @@ log "All repositories cloned successfully."
 rm -rf "${SIM_DEST}/.git"
 
 # Post-clone wiring
-if [ "$PLATFORM" == 'mac' ]; then
+if [ "$PLATFORM" == 'windows' ]; then
+    # Symlink the Windows-side clone back into NEO_DIR so the rest of the
+    # tooling (post-setup checks, racecar_tool.sh, update.sh) sees the same
+    # ${NEO_DIR}/RacecarNeo-Simulator path on every platform.
+    ln -sfn "${SIM_DEST}" "${NEO_DIR}/RacecarNeo-Simulator"
+elif [ "$PLATFORM" == 'mac' ]; then
     chmod -R 777 "${SIM_DEST}"
 fi
 
