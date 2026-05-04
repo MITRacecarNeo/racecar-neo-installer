@@ -1,6 +1,45 @@
 #!/bin/bash
 # Creates the racecar tool for easily using and communicating with a RACECAR
 
+# Raise the UDP buffer once per shell session, only when actually needed.
+# Called from 'racecar sim'. No-op on WSL (Windows handles buffers itself) and
+# no-op if the kernel already has the desired value, so sudo only prompts when
+# the value really needs changing.
+_racecar_tune_udp() {
+  [ "$RACECAR_UDP_TUNED" = "1" ] && return 0
+
+  if grep -qi "microsoft" /proc/version 2>/dev/null; then
+    export RACECAR_UDP_TUNED=1
+    return 0
+  fi
+
+  if ! command -v sysctl >/dev/null 2>&1; then
+    export RACECAR_UDP_TUNED=1
+    return 0
+  fi
+
+  local key want
+  case "$(uname)" in
+    Linux)  key="net.ipv4.udp_mem";      want="65535 131071 262142" ;;
+    Darwin) key="net.inet.udp.maxdgram"; want="65535" ;;
+    *)      export RACECAR_UDP_TUNED=1; return 0 ;;
+  esac
+
+  local current
+  current=$(sysctl -n "$key" 2>/dev/null | tr -s '[:space:]' ' ' | sed 's/^ //;s/ $//')
+  if [ "$current" = "$want" ]; then
+    export RACECAR_UDP_TUNED=1
+    return 0
+  fi
+
+  echo "Tuning UDP buffer (${key}) — sudo password may be required (one time per session)..."
+  if sudo sysctl -w "${key}=\"${want}\"" >/dev/null; then
+    export RACECAR_UDP_TUNED=1
+  else
+    echo "Warning: could not raise UDP buffer. Simulator may drop packets under load."
+  fi
+}
+
 racecar() {
   if [ "$RACECAR_CONFIG_LOADED" != "TRUE" ]; then
     echo "Error: unable to find your local .config file.  Please make sure that you setup the racecar tool correctly."
@@ -23,8 +62,8 @@ racecar() {
     jupyter)
       local prev_dir="$PWD"
       cd "$RACECAR_ABSOLUTE_PATH"/labs || return
-      echo "Creating a Jupyter server..."
-      jupyter-notebook --no-browser
+      echo "Creating a JupyterLab server..."
+      jupyter lab --no-browser
       cd "$prev_dir" || return
       ;;
 
@@ -50,6 +89,7 @@ racecar() {
         echo "Usage: racecar sim <filename.py> [additional arguments...]"
         return 1
       fi
+      _racecar_tune_udp
       shift  # remove "sim" from args
       local script="$1"; shift  # grab the filename
       python3 "$script" -s "$@"
@@ -115,7 +155,7 @@ racecar() {
       echo "  racecar cd                  move to the racecar labs directory on your computer."
       echo "  racecar connect             connects to your car with ssh."
       echo "  racecar help                prints this help message."
-      echo "  racecar jupyter             starts a jupyter server in the racecar labs directory."
+      echo "  racecar jupyter             starts a JupyterLab server in the racecar labs directory."
       echo "  racecar remove              removes your team directory from your car."
       echo "  racecar setup               sets up your team directory on your car."
       echo "  racecar sim <file.py>       runs the specified racecar program with the simulator."

@@ -101,7 +101,7 @@ if [ "$FOLDER" == 'labs' ]; then
                 rm -rf labs
                 # Set up labs folder w/ correct formatting
                 log "Cloning ${CURRICULUM} labs..."
-                run_cmd git clone "${CURR_URL}${CURRICULUM}-labs"
+                run_cmd git clone --depth 1 "${CURR_URL}${CURRICULUM}-labs"
                 mv "racecar-neo-${CURRICULUM}-labs"/labs labs
                 rm -rf "racecar-neo-${CURRICULUM}-labs"
                 cd "$SCRIPT_DIR"
@@ -119,7 +119,7 @@ elif [ "$FOLDER" == 'library' ]; then
     rm -rf library
     # Set up library folder w/ correct formatting
     log "Cloning library..."
-    run_cmd git clone "${LIB_URL}"
+    run_cmd git clone --depth 1 "${LIB_URL}"
     mv racecar-neo-library/library library
     rm -rf racecar-neo-library
 
@@ -144,9 +144,12 @@ elif [ "$FOLDER" == 'sim' ]; then
                 # Remove current sim files
                 rm -rf RacecarNeo-Simulator
 
-                # Clone file from github, format dirs
+                # Clone file from github, format dirs.
+                # --depth 1 implies --single-branch; -b PLATFORM still selects
+                # which branch. Drop .git/ after clone — students don't need it.
                 log "Cloning simulator for ${PLATFORM}..."
-                run_cmd git clone -b "${PLATFORM}" --single-branch "${SIM_URL}"
+                run_cmd git clone --depth 1 -b "${PLATFORM}" "${SIM_URL}"
+                rm -rf RacecarNeo-Simulator/.git
 
                 # Allow permissions
                 if [ "$PLATFORM" == 'mac' ]; then
@@ -218,10 +221,10 @@ elif [ "$FOLDER" == 'library' ]; then
         while IFS= read -r line; do
             [ -z "$line" ] && continue
             [[ "$line" =~ ^# ]] && continue
+            # Strip version pin (==, >=, <=, ~=, !=) to get the dist name.
             PKG_NAME=$(echo "$line" | sed 's/[=<>~!].*//' | xargs)
-            if pip show "$PKG_NAME" > /dev/null 2>&1; then
-                :
-            else
+            # pip show avoids the import-name-vs-dist-name trap (opencv-python → cv2).
+            if ! pip show "$PKG_NAME" > /dev/null 2>&1; then
                 DEP_FAIL=$((DEP_FAIL + 1))
                 DEP_MISSING="${DEP_MISSING} ${PKG_NAME}"
             fi

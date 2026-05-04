@@ -104,24 +104,12 @@ if [ "$ALREADY_INSTALLED" = true ]; then
     exit 1
 fi
 
-log '[1/3] Select your operating system: [windows, mac, linux]'
+log '[1/4] Select your operating system: [windows, mac, linux]'
 select PLATFORM in windows mac linux
-
 do
     case $PLATFORM in
         windows|mac|linux)
             log_silent "Platform selected: $PLATFORM"
-            cd "$SCRIPT_DIR"/..
-            cd ..
-            # Clone file from github, format dirs
-            log "Cloning simulator for ${PLATFORM}..."
-            run_cmd git clone -b "${PLATFORM}" --single-branch "${SIM_URL}"
-
-            # Allow permissions
-            if [ "$PLATFORM" == 'mac' ]; then
-                chmod -R 777 RacecarNeo-Simulator
-            fi
-
             break
             ;;
         *)
@@ -129,27 +117,12 @@ do
     esac
 done
 
-
-log '[2/3] Select your course curriculum: [oneshot, outreach, prereq, mites]'
+log '[2/4] Select your course curriculum: [oneshot, outreach, prereq, mites]'
 select CURRICULUM in oneshot outreach prereq mites
-
 do
     case $CURRICULUM in
         oneshot|outreach|prereq|mites)
             log_silent "Curriculum selected: $CURRICULUM"
-            # Go one folder back from scripts directory
-            cd "$SCRIPT_DIR"/..
-            # Set up library and labs folder w/ correct formatting
-            log "Cloning library..."
-            run_cmd git clone "${LIB_URL}"
-            mv racecar-neo-library/library library
-            rm -rf racecar-neo-library
-
-            log "Cloning ${CURRICULUM} labs..."
-            run_cmd git clone "${CURR_URL}${CURRICULUM}-labs"
-            mv "racecar-neo-${CURRICULUM}-labs"/labs labs
-            rm -rf "racecar-neo-${CURRICULUM}-labs"
-            cd "$SCRIPT_DIR"
             break
             ;;
         *)
@@ -157,20 +130,121 @@ do
     esac
 done
 
-log '[3/3] Installing all RACECAR libraries and dependencies...'
+# Resolve clone destinations up front so all three clones can run in parallel.
+SIM_DEST="${NEO_DIR}/RacecarNeo-Simulator"
+LIB_TMP="${RACECAR_DIR}/racecar-neo-library"
+LABS_TMP="${RACECAR_DIR}/racecar-neo-${CURRICULUM}-labs"
+
+# Wipe any partial prior install before cloning
+rm -rf "${SIM_DEST}" "${LIB_TMP}" "${LABS_TMP}"
+
+log "[3/4] Cloning simulator, library, and labs in parallel..."
+log_silent "Clone targets: sim → ${SIM_DEST}, lib → ${LIB_TMP}, labs → ${LABS_TMP}"
+
+SIM_CLONE_LOG="${LOG_DIR}/.clone_sim.tmp"
+LIB_CLONE_LOG="${LOG_DIR}/.clone_lib.tmp"
+LABS_CLONE_LOG="${LOG_DIR}/.clone_labs.tmp"
+
+# --depth 1 implies --single-branch; -b PLATFORM still selects sim's branch.
+git clone --depth 1 --progress -b "${PLATFORM}" "${SIM_URL}" "${SIM_DEST}" >"${SIM_CLONE_LOG}" 2>&1 &
+SIM_PID=$!
+git clone --depth 1 --progress "${LIB_URL}" "${LIB_TMP}" >"${LIB_CLONE_LOG}" 2>&1 &
+LIB_PID=$!
+git clone --depth 1 --progress "${CURR_URL}${CURRICULUM}-labs" "${LABS_TMP}" >"${LABS_CLONE_LOG}" 2>&1 &
+LABS_PID=$!
+
+# Spinner only on TTY; silent wait when piped.
+INTERACTIVE_TTY=false
+[ -t 1 ] && INTERACTIVE_TTY=true
+
+if $INTERACTIVE_TTY; then
+    echo "  [ ] simulator   starting..."
+    echo "  [ ] library     starting..."
+    echo "  [ ] labs        starting..."
+fi
+
+SPINNER='|/-\'
+SPIN_I=0
+while kill -0 "$SIM_PID" 2>/dev/null \
+   || kill -0 "$LIB_PID" 2>/dev/null \
+   || kill -0 "$LABS_PID" 2>/dev/null; do
+    if $INTERACTIVE_TTY; then
+        SPIN_C=${SPINNER:$SPIN_I:1}
+        SPIN_I=$(( (SPIN_I + 1) % 4 ))
+
+        sim_size=$(du -sh "$SIM_DEST" 2>/dev/null | cut -f1); sim_size=${sim_size:-0}
+        lib_size=$(du -sh "$LIB_TMP" 2>/dev/null | cut -f1);  lib_size=${lib_size:-0}
+        labs_size=$(du -sh "$LABS_TMP" 2>/dev/null | cut -f1); labs_size=${labs_size:-0}
+
+        kill -0 "$SIM_PID"  2>/dev/null && sim_mark="[$SPIN_C]"  || sim_mark="[✓]"
+        kill -0 "$LIB_PID"  2>/dev/null && lib_mark="[$SPIN_C]"  || lib_mark="[✓]"
+        kill -0 "$LABS_PID" 2>/dev/null && labs_mark="[$SPIN_C]" || labs_mark="[✓]"
+
+        printf '\033[3A'
+        printf '\r\033[2K  %s simulator   %s\n' "$sim_mark"  "$sim_size"
+        printf '\r\033[2K  %s library     %s\n' "$lib_mark"  "$lib_size"
+        printf '\r\033[2K  %s labs        %s\n' "$labs_mark" "$labs_size"
+    fi
+    sleep 0.3
+done
+
+if $INTERACTIVE_TTY; then
+    sim_size=$(du -sh "$SIM_DEST" 2>/dev/null | cut -f1); sim_size=${sim_size:-?}
+    lib_size=$(du -sh "$LIB_TMP" 2>/dev/null | cut -f1);  lib_size=${lib_size:-?}
+    labs_size=$(du -sh "$LABS_TMP" 2>/dev/null | cut -f1); labs_size=${labs_size:-?}
+    printf '\033[3A'
+    printf '\r\033[2K  [✓] simulator   %s\n' "$sim_size"
+    printf '\r\033[2K  [✓] library     %s\n' "$lib_size"
+    printf '\r\033[2K  [✓] labs        %s\n' "$labs_size"
+fi
+
+wait "$SIM_PID";  SIM_RC=$?
+wait "$LIB_PID";  LIB_RC=$?
+wait "$LABS_PID"; LABS_RC=$?
+
+for f in "$SIM_CLONE_LOG" "$LIB_CLONE_LOG" "$LABS_CLONE_LOG"; do
+    if [ -f "$f" ]; then
+        log_silent "----- $(basename "$f") -----"
+        cat "$f" >> "$LOG_FILE"
+        rm -f "$f"
+    fi
+done
+
+# Never proceed with a partially-cloned tree.
+if [ "$SIM_RC" -ne 0 ] || [ "$LIB_RC" -ne 0 ] || [ "$LABS_RC" -ne 0 ]; then
+    log ""
+    echo -e "\e[1;31m[ERROR] Clone failed (sim:${SIM_RC} library:${LIB_RC} labs:${LABS_RC}). See ${LOG_FILE}\e[0m"
+    log_silent "========== SETUP LOG END (ABORTED) =========="
+    exit 1
+fi
+
+log "All repositories cloned successfully."
+
+# Drop the sim's .git/ — ~150-250 MB of dead weight; students never use it.
+# (lib/labs .git/ is inside their temp wrappers, removed below.)
+rm -rf "${SIM_DEST}/.git"
+
+# Post-clone wiring
+if [ "$PLATFORM" == 'mac' ]; then
+    chmod -R 777 "${SIM_DEST}"
+fi
+
+mv "${LIB_TMP}/library" "${RACECAR_DIR}/library"
+rm -rf "${LIB_TMP}"
+mv "${LABS_TMP}/labs" "${RACECAR_DIR}/labs"
+rm -rf "${LABS_TMP}"
+
+log '[4/4] Installing all RACECAR libraries and dependencies...'
 # Install RACECAR libraries and dependencies
 if [ "$PLATFORM" == 'windows' ]; then
     log_silent "Starting Windows (WSL2) setup..."
     run_pipe "yes | sudo apt update"
-    run_pipe "yes | sudo apt upgrade"
-    run_pipe "yes | sudo apt install python-is-python3"
-    run_pipe "yes | sudo apt install python3-pip"
+    run_pipe "yes | sudo apt install -y python-is-python3 python3-pip"
 
-    # Setting up venv for Python 3.9
+    # Single post-PPA apt call — triggers/ldconfig run once instead of three times.
     run_pipe "yes | sudo add-apt-repository ppa:deadsnakes/ppa"
     run_pipe "yes | sudo apt update"
-    run_pipe "yes | sudo apt install python3.9"
-    run_pipe "yes | sudo apt install python3.9-venv"
+    run_pipe "yes | sudo apt install -y python3.9 python3.9-venv ffmpeg libsm6 libxext6"
 
     if ! command -v python3.9 &> /dev/null; then
         log ""
@@ -199,19 +273,16 @@ if [ "$PLATFORM" == 'windows' ]; then
         exit 1
     fi
 
-    # continue with regular setup
-    run_pipe "yes | sudo apt install jupyter-notebook"
-    run_pipe "yes | sudo apt install ffmpeg libsm6 libxext6 -y"
     run_cmd busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
 
     log_silent "Writing .config file..."
 
-    # Windows config command
+    # DISPLAY intentionally NOT set: WSL2+WSLg auto-injects DISPLAY=:0 before
+    # .bashrc; hardcoding "localhost:42.0" (legacy XLaunch) breaks Qt/cv2.imshow.
     echo "RACECAR_ABSOLUTE_PATH=${RACECAR_DIR}
 RACECAR_IP=127.0.0.1
 RACECAR_TEAM=student
-RACECAR_CONFIG_LOADED=TRUE
-export DISPLAY=localhost:42.0" > "${SCRIPT_DIR}/.config"
+RACECAR_CONFIG_LOADED=TRUE" > "${SCRIPT_DIR}/.config"
 
     log_silent "Writing .local_bashrc.sh..."
 
@@ -268,15 +339,12 @@ BASHEOF
 elif [ "$PLATFORM" == 'linux' ]; then
     log_silent "Starting Linux setup..."
     run_pipe "yes | sudo apt update"
-    run_pipe "yes | sudo apt upgrade"
-    run_pipe "yes | sudo apt install python-is-python3"
-    run_pipe "yes | sudo apt install python3-pip"
+    run_pipe "yes | sudo apt install -y python-is-python3 python3-pip"
 
-    # Setting up venv for Python 3.9
+    # Single post-PPA apt call — triggers/ldconfig run once instead of three times.
     run_pipe "yes | sudo add-apt-repository ppa:deadsnakes/ppa"
     run_pipe "yes | sudo apt update"
-    run_pipe "yes | sudo apt install python3.9"
-    run_pipe "yes | sudo apt install python3.9-venv"
+    run_pipe "yes | sudo apt install -y python3.9 python3.9-venv ffmpeg libsm6 libxext6"
 
     if ! command -v python3.9 &> /dev/null; then
         log ""
@@ -305,18 +373,15 @@ elif [ "$PLATFORM" == 'linux' ]; then
         exit 1
     fi
 
-    run_pipe "yes | sudo apt install jupyter-notebook"
-    run_pipe "yes | sudo apt install ffmpeg libsm6 libxext6 -y"
     run_cmd busybox dos2unix "${SCRIPT_DIR}"/racecar_tool.sh
 
     log_silent "Writing .config file..."
 
-    # Linux config command
+    # UDP buffer tuning lives in _racecar_tune_udp (lazy, called from 'racecar sim').
     echo "RACECAR_ABSOLUTE_PATH=${RACECAR_DIR}
 RACECAR_IP=127.0.0.1
 RACECAR_TEAM=student
-RACECAR_CONFIG_LOADED=TRUE
-sudo sysctl -w net.ipv4.udp_mem=\"65535 131071 262142\"" > "${SCRIPT_DIR}/.config"
+RACECAR_CONFIG_LOADED=TRUE" > "${SCRIPT_DIR}/.config"
 
     log_silent "Writing .local_bashrc.sh..."
 
@@ -350,19 +415,22 @@ BASHEOF
 
 elif [ "$PLATFORM" == 'mac' ]; then
     log_silent "Starting Mac setup..."
-    run_cmd xcode-select --install
+    # Skip if CLT is present — xcode-select --install exits non-zero otherwise.
+    if xcode-select -p >/dev/null 2>&1; then
+        log_silent "Xcode Command Line Tools already installed; skipping."
+    else
+        run_cmd xcode-select --install
+    fi
 
     run_cmd /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
     echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
     echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.bash_profile
 
-    run_cmd /bin/bash brew install python3
+    run_cmd brew install python3
 
     echo 'export PATH="/usr/local/opt/python/libexec/bin:$PATH"' >> ~/.zprofile
     echo 'export PATH="/usr/local/opt/python/libexec/bin:$PATH"' >> ~/.bash_profile
-
-    echo 'export PATH="/usr/local/opt/python/libexec/bin:$PATH"'
 
     run_cmd python3 -m pip install --upgrade pip
 
@@ -397,12 +465,11 @@ elif [ "$PLATFORM" == 'mac' ]; then
 
     log_silent "Writing .config file..."
 
-    # Mac config command
+    # UDP buffer tuning lives in _racecar_tune_udp (lazy, called from 'racecar sim').
     echo "RACECAR_ABSOLUTE_PATH=${RACECAR_DIR}
 RACECAR_IP=127.0.0.1
 RACECAR_TEAM=student
-RACECAR_CONFIG_LOADED=TRUE
-sudo sysctl -w net.inet.udp.maxdgram=65535" > "${SCRIPT_DIR}/.config"
+RACECAR_CONFIG_LOADED=TRUE" > "${SCRIPT_DIR}/.config"
 
     log_silent "Writing .local_bashrc.sh..."
 
@@ -552,13 +619,10 @@ if [ -f "${NEO_DIR}/racecar-venv/bin/activate" ]; then
         # Skip empty lines and comments
         [ -z "$line" ] && continue
         [[ "$line" =~ ^# ]] && continue
-        # Extract package name (before ==, >=, <=, ~=, or whitespace)
+        # Strip version pin (==, >=, <=, ~=, !=) to get the dist name.
         PKG_NAME=$(echo "$line" | sed 's/[=<>~!].*//' | xargs)
-        # Normalize: replace hyphens with underscores for pip check
-        if python3 -c "import importlib; importlib.import_module('${PKG_NAME//-/_}')" 2>/dev/null || \
-           pip show "$PKG_NAME" > /dev/null 2>&1; then
-            :
-        else
+        # pip show avoids the import-name-vs-dist-name trap (opencv-python → cv2).
+        if ! pip show "$PKG_NAME" > /dev/null 2>&1; then
             DEP_FAIL=$((DEP_FAIL + 1))
             DEP_MISSING="${DEP_MISSING} ${PKG_NAME}"
         fi
@@ -579,18 +643,13 @@ if [ "$PLATFORM" == 'windows' ]; then
     WSL_NET_MODE="unknown"
     SIM_IP="unknown"
 
-    # Detect WSL version
+    # WSL2's kernel release contains "WSL2"; WSL1's doesn't. osrelease is
+    # the authoritative source (more reliable than /proc/version).
     if grep -qi "microsoft" /proc/version 2>/dev/null; then
-        if grep -qi "WSL2" /proc/version 2>/dev/null; then
+        if grep -qi "WSL2" /proc/sys/kernel/osrelease 2>/dev/null; then
             WSL_VERSION="WSL2"
         else
-            # Could be WSL1 or WSL2 without "WSL2" in version string
-            # Check for Hyper-V features that only exist in WSL2
-            if [ -d "/sys/class/dmi" ] 2>/dev/null; then
-                WSL_VERSION="WSL2"
-            else
-                WSL_VERSION="WSL1"
-            fi
+            WSL_VERSION="WSL1"
         fi
     fi
 
