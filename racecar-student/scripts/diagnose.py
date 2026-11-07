@@ -99,31 +99,72 @@ def check_local_bind():
         return False, str(e)
 
 
-def check_firewall_rule():
-    """Check if the Windows Firewall rule exists (WSL2 only)."""
+def relay_applies():
+    """Whether 'racecar sim' uses the sim relay here (same gate as racecar_tool.sh).
+
+    Returns (applies, reason). The relay is used only on WSL2 in NAT mode; WSL1 and
+    mirrored mode share localhost with Windows and connect directly.
+    """
+    if os.environ.get("RACECAR_SIM_RELAY", "1") == "0":
+        return False, "disabled by RACECAR_SIM_RELAY=0"
+    if os.environ.get("RACECAR_SIM_IP"):
+        return False, "RACECAR_SIM_IP is set explicitly"
     try:
+        with open("/proc/sys/kernel/osrelease") as f:
+            if "wsl2" not in f.read().lower():
+                return False, "not running in WSL2"
+    except OSError:
+        return False, "not running in WSL2"
+    try:
+        mode = subprocess.run(
+            ["wslinfo", "--networking-mode"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout.strip()
+    except Exception:
+        mode = ""  # older WSL without wslinfo supports NAT only
+    if mode == "mirrored":
+        return False, "WSL2 mirrored networking"
+    return True, "WSL2 NAT networking"
+
+
+def check_relay():
+    """Check that the relay's Windows half starts and compiles.
+
+    With stdin closed at once, a healthy relay exits 0 straight away.
+    """
+    ps1 = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "sim_relay", "relay_win.ps1"
+    )
+    if not os.path.isfile(ps1):
+        return False, f"relay files missing ({ps1}); re-pull the scripts folder"
+    try:
+        win_path = subprocess.run(
+            ["wslpath", "-w", ps1], capture_output=True, text=True, timeout=5
+        ).stdout.strip()
         result = subprocess.run(
             [
                 "powershell.exe",
-                "-Command",
-                'Get-NetFirewallRule -DisplayName "WSL2 RacecarNeo Simulator" '
-                "-ErrorAction SilentlyContinue | "
-                "Select-Object -ExpandProperty Enabled",
+                "-NoLogo",
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                win_path,
             ],
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=30,
         )
-        if "True" in result.stdout:
-            return "enabled"
-        elif "False" in result.stdout:
-            return "disabled"
-        else:
-            return "not_found"
-    except FileNotFoundError:
-        return "not_wsl"
+        if result.returncode == 0:
+            return True, None
+        detail = (result.stderr or result.stdout).strip().splitlines()
+        return False, detail[0] if detail else f"exit code {result.returncode}"
     except Exception as e:
-        return f"error: {e}"
+        return False, str(e)
 
 
 def check_wsl_adapter():
@@ -190,22 +231,23 @@ def main():
         print(f"[4] Local UDP bind: FAILED ({bind_info})")
         issues.append("Cannot bind local UDP socket")
 
-    # 5. Windows Firewall rule
-    fw_status = check_firewall_rule()
-    if fw_status == "enabled":
-        print("[5] Windows Firewall rule: FOUND (enabled)")
-    elif fw_status == "disabled":
-        print("[5] Windows Firewall rule: FOUND (but DISABLED)")
-        issues.append("Firewall rule exists but is disabled")
-    elif fw_status == "not_found":
-        print(
-            "[5] Windows Firewall rule: NOT FOUND — run the PowerShell command from setup"
-        )
-        issues.append("Windows Firewall rule not configured")
-    elif fw_status == "not_wsl":
-        print("[5] Windows Firewall rule: N/A (not running in WSL2)")
+    # 5. Simulator relay (WSL2 NAT only; replaces the old Windows Firewall rule)
+    applies, reason = relay_applies()
+    if not applies:
+        print(f"[5] Simulator relay: not used ({reason})")
     else:
-        print(f"[5] Windows Firewall rule: Could not check ({fw_status})")
+        relay_ok, relay_err = check_relay()
+        if relay_ok:
+            print(
+                "[5] Simulator relay: OK ('racecar sim' connects via 127.0.0.1;"
+                " no firewall rule needed)"
+            )
+        else:
+            print(f"[5] Simulator relay: FAILED ({relay_err})")
+            issues.append(
+                "Simulator relay cannot start — 'racecar sim' will connect directly"
+                " and camera labs may freeze"
+            )
 
     # 6. WSL adapter info
     adapter_info = check_wsl_adapter()

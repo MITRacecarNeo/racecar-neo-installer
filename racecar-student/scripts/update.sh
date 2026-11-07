@@ -8,6 +8,7 @@
 SIM_URL="https://github.com/MITRacecarNeo/RacecarNeo-Simulator.git"
 LIB_URL="https://github.com/MITRacecarNeo/racecar-neo-library.git"
 CURR_URL="https://github.com/MITRacecarNeo/racecar-neo-"
+INSTALLER_URL="https://github.com/MITRacecarNeo/racecar-neo-installer.git"
 
 # Get the full path of the current script
 SCRIPT_PATH=$(readlink -f "$0" 2>/dev/null || echo "$(cd "$(dirname "$0")"; pwd)/$(basename "$0")")
@@ -69,11 +70,11 @@ log_silent "======================================"
 log 'Welcome to the RACECAR Neo command-line updating tool.'
 log "Update log: $LOG_FILE"
 
-log '[1/3] Select the folder that you would like to update: [labs, library, sim]'
-select FOLDER in labs library sim
+log '[1/3] Select the folder that you would like to update: [labs, library, sim, scripts]'
+select FOLDER in labs library sim scripts
 do
     case $FOLDER in
-        labs|library|sim)
+        labs|library|sim|scripts)
             log_silent "Folder selected: $FOLDER"
             log "Folder '$FOLDER' selected. Continuing..."
             break
@@ -200,6 +201,36 @@ elif [ "$FOLDER" == 'sim' ]; then
                 ;;
         esac
     done
+elif [ "$FOLDER" == 'scripts' ]; then
+    log '[2/3] Now updating the scripts folder...'
+    log 'Only installer-provided scripts are replaced; your .config, .local_bashrc.sh, and logs are kept.'
+    # Clone into a temp dir inside NEO_DIR (same filesystem), then move each file into place.
+    # mv on the same filesystem is an atomic rename to a new inode, so this running script
+    # (which bash reads incrementally) keeps reading its old copy safely.
+    TMP_CLONE=$(mktemp -d "${NEO_DIR}/.scripts-update.XXXXXX")
+    log "Cloning racecar-neo-installer..."
+    if run_cmd git clone --depth 1 "${INSTALLER_URL}" "${TMP_CLONE}/installer"; then
+        NEW_SCRIPTS="${TMP_CLONE}/installer/racecar-student/scripts"
+        if [ -d "$NEW_SCRIPTS" ]; then
+            while IFS= read -r f; do
+                f="${f#./}"
+                case "$f" in
+                    .config|.local_bashrc.sh|.logs/*) continue ;;  # never touch local state
+                esac
+                mkdir -p "$(dirname "${SCRIPT_DIR}/${f}")"
+                mv -f "${NEW_SCRIPTS}/${f}" "${SCRIPT_DIR}/${f}"
+                log_silent "  updated scripts/${f}"
+            done < <(cd "$NEW_SCRIPTS" && find . -type f)
+            # Match setup.sh: the racecar tool must have LF line endings.
+            if command -v busybox >/dev/null 2>&1; then
+                busybox dos2unix "${SCRIPT_DIR}/racecar_tool.sh" 2>/dev/null
+            fi
+        else
+            log_silent "WARNING: Command exited with code 1: scripts folder missing from cloned installer"
+            log "Error: scripts folder not found in the downloaded installer."
+        fi
+    fi
+    rm -rf "${TMP_CLONE}"
 fi
 
 # ============================================================================
@@ -279,6 +310,12 @@ elif [ "$FOLDER" == 'sim' ]; then
         check_pass "Simulator folder exists"
     else
         check_fail "Simulator folder not found after update"
+    fi
+elif [ "$FOLDER" == 'scripts' ]; then
+    if [ -f "${SCRIPT_DIR}/sim_relay/relay_wsl.py" ] && [ -f "${SCRIPT_DIR}/sim_relay/relay_win.ps1" ]; then
+        check_pass "Simulator relay files present"
+    else
+        check_fail "Simulator relay files not found after update"
     fi
 fi
 
@@ -367,5 +404,8 @@ log_silent "====================================================================
 
 echo ""
 echo -e "\e[1;32mRACECAR Neo Update Complete.\e[0m"
+if [ "$FOLDER" == 'scripts' ]; then
+    echo "Close and re-open your terminal (or run: source ~/.bashrc) to load the updated racecar tool."
+fi
 
 log_silent "========== UPDATE LOG END =========="
