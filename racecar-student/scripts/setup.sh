@@ -351,26 +351,8 @@ BASHEOF
 
     log_silent "Shell configuration complete."
 
-    # WSL2 firewall notice (orange text for visibility)
-    echo ""
-    echo -e "\e[33m=========================================================================="
-    log "[IMPORTANT] Windows Firewall Configuration Required"
-    echo "=========================================================================="
-    echo "WSL2 requires a Windows Firewall rule to allow the RacecarNeo Simulator to"
-    echo "communicate with your Python scripts. Without this rule, the simulator"
-    echo "may fail to connect when your computer is connected to the internet."
-    echo ""
-    echo "Please open PowerShell as Administrator on Windows and run:"
-    echo ""
-    echo "  New-NetFirewallRule -DisplayName \"WSL2 RacecarNeo Simulator\" -Direction Inbound -InterfaceAlias (Get-NetAdapter -IncludeHidden | Where-Object { \$_.Name -like '*WSL*' } | Select-Object -First 1 -ExpandProperty Name) -Action Allow -Protocol UDP -LocalPort 5064-5065"
-    echo ""
-    echo "If that command fails, first find your WSL adapter name:"
-    echo "  Get-NetAdapter -IncludeHidden | Where-Object { \$_.Name -like '*WSL*' }"
-    echo "Then use the Name from the output in place of the -InterfaceAlias parameter."
-    echo ""
-    echo "You only need to run this command once."
-    echo -e "==========================================================================\e[0m"
-    echo ""
+    # No Windows Firewall rule is needed: 'racecar sim' runs the sim relay
+    # (scripts/sim_relay), which keeps all simulator traffic on localhost on both sides.
 
 elif [ "$PLATFORM" == 'linux' ]; then
     log_silent "Starting Linux setup..."
@@ -582,6 +564,12 @@ check_fail() {
     FAIL=$((FAIL + 1))
 }
 
+# Non-fatal: reported, but not counted as a failed check.
+check_warn() {
+    echo -e "  \e[33m[WARN]\e[0m $1"
+    log_silent "[WARN] $1"
+}
+
 # 1. Simulator folder
 if [ -d "${NEO_DIR}/RacecarNeo-Simulator" ]; then
     check_pass "Simulator folder exists"
@@ -743,30 +731,21 @@ if [ "$PLATFORM" == 'windows' ]; then
     check_pass "WSL environment: ${WSL_VERSION}, networking: ${WSL_NET_MODE}"
     log_silent "  Simulator IP will resolve to: ${SIM_IP}"
 
-    # Test UDP connectivity to simulator ports
-    if [ -f "${NEO_DIR}/racecar-venv/bin/activate" ]; then
-        source "${NEO_DIR}/racecar-venv/bin/activate"
-        UDP_RESULT=$(python3 -c "
-import socket
-ip = '${SIM_IP}'
-ok = True
-for port in [5064, 5065]:
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(1)
-        s.sendto(b'\\x01\\x01', (ip, port))
-        s.close()
-    except Exception as e:
-        ok = False
-        print(f'FAIL:{port}:{e}')
-if ok:
-    print('OK')
-" 2>&1)
-        if echo "$UDP_RESULT" | grep -q "OK"; then
-            check_pass "UDP send to simulator (${SIM_IP}:5064-5065) — reachable"
+    # 'racecar sim' uses the sim relay only on WSL2 in NAT mode (see racecar_tool.sh); WSL1 and
+    # mirrored mode share localhost with Windows and connect directly. Same gate as the tool.
+    WSLINFO_MODE=$(wslinfo --networking-mode 2>/dev/null | tr -d '\r')
+    if [ "$WSL_VERSION" == "WSL2" ] && [ "$WSLINFO_MODE" != "mirrored" ]; then
+        # The relay's Windows half must start and compile. With stdin closed at once, a
+        # healthy relay exits 0 straight away. A failure is a warning, not a failed check:
+        # 'racecar sim' falls back to the direct connection if the relay cannot start.
+        RELAY_PS1=$(wslpath -w "${SCRIPT_DIR}/sim_relay/relay_win.ps1" 2>/dev/null)
+        if [ -n "$RELAY_PS1" ] && powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$RELAY_PS1" </dev/null >/dev/null 2>&1; then
+            check_pass "Simulator relay starts on Windows"
         else
-            check_fail "UDP send to simulator (${SIM_IP}) — ${UDP_RESULT}"
+            check_warn "Simulator relay could not start (powershell.exe ${RELAY_PS1}); 'racecar sim' will connect directly, and camera labs may freeze"
         fi
+    else
+        log_silent "  Simulator relay not used (${WSL_VERSION}, ${WSL_NET_MODE})"
     fi
 fi
 

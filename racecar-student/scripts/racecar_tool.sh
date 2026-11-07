@@ -40,6 +40,80 @@ _racecar_tune_udp() {
   fi
 }
 
+# On WSL2 in NAT mode, RacecarSim runs on Windows while Python runs in WSL, and large camera
+# datagrams are lost crossing the WSL-Windows network (the lab freezes a few frames in). The sim
+# relay carries the traffic over a WSL interop pipe instead: Python talks to the relay on
+# 127.0.0.1 inside WSL, and its Windows half talks to RacecarSim on Windows' 127.0.0.1. No
+# firewall rule is needed.
+#
+# The relay is used ONLY on WSL2 in NAT mode. WSL1 and mirrored mode share localhost with
+# Windows, so the relay's ports would collide with the simulator's; those setups (and macOS /
+# Linux) keep the direct path unchanged. RACECAR_SIM_RELAY=0 disables the relay, and an
+# explicitly set RACECAR_SIM_IP is always respected.
+_racecar_relay_wanted() {
+  [ "${RACECAR_SIM_RELAY:-1}" != "0" ] || return 1
+  [ -z "$RACECAR_SIM_IP" ] || return 1
+  # WSL2 only: its kernel release contains "WSL2"; WSL1 and native Linux do not.
+  grep -qi "WSL2" /proc/sys/kernel/osrelease 2>/dev/null || return 1
+  # Not mirrored mode. Older WSL builds without wslinfo only support NAT.
+  local mode
+  mode=$(wslinfo --networking-mode 2>/dev/null | tr -d '\r')
+  [ "$mode" != "mirrored" ]
+}
+
+# Stop relays left behind by an earlier run (for example, a terminal closed mid-lab). They hold
+# ports 5064/5065 and would block the new relay.
+_racecar_relay_clear_stale() {
+  pkill -u "$(id -u)" -f "[s]im_relay/relay_wsl.py" 2>/dev/null || return 0
+  local i
+  for i in $(seq 1 30); do
+    pgrep -u "$(id -u)" -f "[s]im_relay/relay_wsl.py" >/dev/null 2>&1 || return 0
+    sleep 0.1
+  done
+  pkill -9 -u "$(id -u)" -f "[s]im_relay/relay_wsl.py" 2>/dev/null
+  return 0
+}
+
+_racecar_relay_start() {
+  local dir="${RACECAR_ABSOLUTE_PATH}/scripts/sim_relay"
+  if [ ! -f "$dir/relay_wsl.py" ] || [ ! -f "$dir/relay_win.ps1" ]; then
+    echo "Warning: simulator relay files not found in ${dir}."
+    return 1
+  fi
+  _racecar_relay_clear_stale
+  local log
+  log=$(mktemp)
+  python3 "$dir/relay_wsl.py" "$(wslpath -w "$dir/relay_win.ps1")" >"$log" 2>&1 &
+  RACECAR_RELAY_PID=$!
+  disown "$RACECAR_RELAY_PID" 2>/dev/null
+  local i
+  for i in $(seq 1 40); do
+    if grep -q "relay ready" "$log"; then
+      rm -f "$log"
+      return 0
+    fi
+    kill -0 "$RACECAR_RELAY_PID" 2>/dev/null || break
+    sleep 0.25
+  done
+  echo "Warning: could not start the simulator relay:"
+  sed 's/^/  /' "$log"
+  rm -f "$log"
+  _racecar_relay_stop
+  return 1
+}
+
+_racecar_relay_stop() {
+  if [ -n "$RACECAR_RELAY_PID" ]; then
+    kill "$RACECAR_RELAY_PID" 2>/dev/null
+    local i
+    for i in $(seq 1 20); do
+      kill -0 "$RACECAR_RELAY_PID" 2>/dev/null || break
+      sleep 0.1
+    done
+    unset RACECAR_RELAY_PID
+  fi
+}
+
 racecar() {
   if [ "$RACECAR_CONFIG_LOADED" != "TRUE" ]; then
     echo "Error: unable to find your local .config file.  Please make sure that you setup the racecar tool correctly."
@@ -92,6 +166,16 @@ racecar() {
       _racecar_tune_udp
       shift  # remove "sim" from args
       local script="$1"; shift  # grab the filename
+      if _racecar_relay_wanted; then
+        if _racecar_relay_start; then
+          RACECAR_SIM_IP=127.0.0.1 python3 "$script" -s "$@"
+          local status=$?
+          _racecar_relay_stop
+          return $status
+        fi
+        echo "Falling back to a direct connection to the simulator (set RACECAR_SIM_RELAY=0 to skip the relay)."
+      fi
+      # Direct path: unchanged behavior, and the fallback if the relay cannot start.
       python3 "$script" -s "$@"
       ;;
 
